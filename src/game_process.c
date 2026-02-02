@@ -22,6 +22,7 @@ int p1_fd, p2_fd;
 char p1_user[64], p2_user[64];
 int turn = 1;
 int msg_queue_id;
+int semid;  // Semaphore ID for board access control
 
 void print_board(char *buf);
 
@@ -33,7 +34,18 @@ void send_to_both(const char *msg) {
 void send_board() {
     char buf[BUF_SIZE] = "BOARD:\n";
     char board_str[256];
+    
+    // Lock semaphore before reading board state
+    if (semid != -1) {
+        sem_lock(semid);
+    }
+    
     print_board(board_str);
+    
+    if (semid != -1) {
+        sem_unlock(semid);
+    }
+    
     strncat(buf, board_str, sizeof(buf) - strlen(buf) - 1);
     send_to_both(buf);
 }
@@ -114,13 +126,22 @@ void end_game(const char *result, int winner) {
     
     printf("[GAME] Game ended between %s and %s\n", p1_user, p2_user);
     
+    // Cleanup semaphore before exit
+    if (semid != -1) {
+        if (semctl(semid, 0, IPC_RMID) == -1) {
+            perror("semctl IPC_RMID failed");
+        } else {
+            printf("[GAME] Semaphore (ID: %d) removed\n", semid);
+        }
+    }
+    
     // Exit game process - server will detect via SIGCHLD and return players to lobby
     exit(0);
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s p1_fd p2_fd p1_user p2_user\n", argv[0]);
+    if (argc != 6) {
+        fprintf(stderr, "Usage: %s p1_fd p2_fd p1_user p2_user sem_key\n", argv[0]);
         exit(1);
     }
     
@@ -132,10 +153,34 @@ int main(int argc, char *argv[]) {
     strncpy(p2_user, argv[4], sizeof(p2_user) - 1);
     p2_user[sizeof(p2_user) - 1] = '\0';
     
+    // Get unique semaphore key for this game
+    int sem_key = atoi(argv[5]);
+    
     // Disable Nagle's algorithm for immediate message delivery
     int flag = 1;
     setsockopt(p1_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
     setsockopt(p2_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+    
+    // Create unique semaphore for this game's board access control
+    semid = semget(sem_key, 1, IPC_CREAT | IPC_EXCL | 0666);
+    if (semid == -1) {
+        perror("semget failed");
+        semid = -1;  // Disable semaphore usage
+    } else {
+        // Initialize semaphore value to 1 (binary semaphore)
+        union semun {
+            int val;
+        } sem_union;
+        sem_union.val = 1;
+        
+        if (semctl(semid, 0, SETVAL, sem_union) == -1) {
+            perror("semctl SETVAL failed");
+            semid = -1;
+        } else {
+            printf("[GAME] Semaphore created (ID: %d, Key: %d) for board synchronization\n", 
+                   semid, sem_key);
+        }
+    }
     
     // Get message queue for notifications
     msg_queue_id = msgget(MSG_KEY, 0666);
@@ -199,6 +244,11 @@ int main(int argc, char *argv[]) {
                      (turn == 1) ? p2_user : p1_user);
             send_game_notification(win_msg);
             
+            // Cleanup semaphore
+            if (semid != -1) {
+                semctl(semid, 0, IPC_RMID);
+            }
+            
             exit(0);
         }
         
@@ -221,6 +271,11 @@ int main(int argc, char *argv[]) {
                      "Player disconnect: %s wins by default",
                      (turn == 1) ? p2_user : p1_user);
             send_game_notification(msg);
+            
+            // Cleanup semaphore
+            if (semid != -1) {
+                semctl(semid, 0, IPC_RMID);
+            }
             
             exit(0);
         }
@@ -255,8 +310,18 @@ int main(int argc, char *argv[]) {
             continue;
         }
         
-        // Valid move - update board
+        // Valid move - update board with semaphore protection
+        // Lock semaphore to ensure exclusive access to board
+        if (semid != -1) {
+            sem_lock(semid);
+        }
+        
         board[pos] = (turn == 1) ? 'X' : 'O';
+        
+        // Unlock semaphore
+        if (semid != -1) {
+            sem_unlock(semid);
+        }
         
         // Announce the move to both players
         char move_msg[128];
@@ -274,14 +339,25 @@ int main(int argc, char *argv[]) {
         // Small delay to ensure board is received
         usleep(50000);  // 50ms
         
-        // Check for win
-        if (check_win(board[pos])) {
+        // Check for win with semaphore protection
+        if (semid != -1) {
+            sem_lock(semid);
+        }
+        
+        int has_won = check_win(board[pos]);
+        int is_full = board_full();
+        
+        if (semid != -1) {
+            sem_unlock(semid);
+        }
+        
+        if (has_won) {
             end_game("WIN", turn);
             // end_game exits, so this won't be reached
         }
         
         // Check for draw
-        if (board_full()) {
+        if (is_full) {
             end_game("DRAW", 0);
             // end_game exits, so this won't be reached
         }

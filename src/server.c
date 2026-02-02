@@ -171,17 +171,19 @@ void start_game(int p1_idx, int p2_idx) {
         // Prepare arguments
         char fd1_str[16], fd2_str[16];
         char u1[64], u2[64];
-        char pid_str[16];
+        char sem_key_str[16];
+        
         snprintf(fd1_str, sizeof(fd1_str), "%d", p1_fd);
         snprintf(fd2_str, sizeof(fd2_str), "%d", p2_fd);
-        snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+        snprintf(sem_key_str, sizeof(sem_key_str), "%d", getpid());  // Use PID as unique key
+        
         strncpy(u1, clients[p1_idx].username, sizeof(u1) - 1);
         u1[sizeof(u1) - 1] = '\0';
         strncpy(u2, clients[p2_idx].username, sizeof(u2) - 1);
         u2[sizeof(u2) - 1] = '\0';
         
-        // Execute game process
-        execl("./game_process", "game_process", fd1_str, fd2_str, u1, u2, NULL);
+        // Execute game process with semaphore key
+        execl("./game_process", "game_process", fd1_str, fd2_str, u1, u2, sem_key_str, NULL);
         perror("execl failed");
         exit(1);
     } else if (pid > 0) {
