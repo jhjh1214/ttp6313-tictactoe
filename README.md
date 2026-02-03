@@ -2,20 +2,8 @@
 
 A TCP/IP client-server application demonstrating advanced operating system concepts including socket programming, inter-process communication (IPC), process management, and concurrent programming.
 
-## 📋 Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [System Architecture](#system-architecture)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Technical Implementation](#technical-implementation)
-- [Testing](#testing)
-- [Known Limitations](#known-limitations)
-- [Contributors](#contributors)
-- [License](#license)
 
-## 🎯 Overview
+##  Overview
 
 This project implements a networked multiplayer Tic-Tac-Toe game where multiple users can play simultaneously across different machines. The system demonstrates:
 
@@ -33,7 +21,7 @@ This project implements a networked multiplayer Tic-Tac-Toe game where multiple 
 4. **Data Persistence**: Maintains user credentials and statistics across sessions
 5. **Resource Management**: Prevents zombie processes and resource leaks
 
-## ✨ Features
+##  Features
 
 ### 1. User Authentication
 - User registration with unique username validation
@@ -80,7 +68,7 @@ This project implements a networked multiplayer Tic-Tac-Toe game where multiple 
 - Win-by-default for remaining player
 - Server graceful shutdown (SIGINT/SIGTERM)
 
-## 🏗️ System Architecture
+##  System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -116,7 +104,7 @@ This project implements a networked multiplayer Tic-Tac-Toe game where multiple 
 └─────────────────────────────────────────────────────┘
 ```
 
-## 📦 Requirements
+##  Requirements
 
 ### System Requirements
 - **OS**: Linux/Unix (Ubuntu 20.04+ recommended)
@@ -130,12 +118,12 @@ This project implements a networked multiplayer Tic-Tac-Toe game where multiple 
 - POSIX threads library (pthread)
 - No external libraries required
 
-## 🚀 Installation
+##  Installation
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/tictactoe-multiplayer.git
-cd tictactoe-multiplayer
+git clone https://github.com/jhjh1214/ttp6313-tictactoe.git
+cd ttp6313-tictactoe
 ```
 
 ### 2. Build Project
@@ -154,7 +142,7 @@ This compiles three executables:
 mkdir -p data
 ```
 
-## 💻 Usage
+##  Usage
 
 ### Starting the Server
 
@@ -314,7 +302,7 @@ accept alice
 # Play game...
 ```
 
-## ⚠️ Known Limitations
+##  Known Limitations
 
 ### Scalability
 - Maximum 20 concurrent clients (configurable via MAX_CLIENTS)
@@ -349,17 +337,10 @@ accept alice
 **Institution**: Multimedia University  
 **Trimester**: 2, 2024/2025
 
-## 📄 License
+##  License
 
 This project is developed for academic purposes as part of TTP6313 Operating Systems coursework.
 
-## 🔗 Additional Resources
 
-- [Testing Guide](TESTING.md)
-- [Project Documentation](docs/)
-
----
-
-**Project Status**: ✅ Complete and Ready for Submission
 
 **Last Updated**: February 2026
